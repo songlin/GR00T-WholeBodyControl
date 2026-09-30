@@ -458,6 +458,7 @@ class ZMQManager : public InputInterface {
     }
 
     void PrepareLockstepMode() override {
+      planner_lockstep_ = true;  // command messages may still switch to PLANNER mode
       active_mode_ = ManagedMode::STREAMED_MOTION;
       if (pose_interface_) pose_interface_->PrepareLockstepMode();
       is_planner_ready_ = false;
@@ -484,6 +485,32 @@ class ZMQManager : public InputInterface {
                            DataBuffer<MovementState>& movement_state_buffer,
                            std::mutex& current_motion_mutex) {
       
+      // Lockstep: complete a pending planner start once the control step has
+      // switched to the planner motion (checked once per simulation boundary).
+      if (planner_start_pending_) {
+        bool on_planner_motion;
+        {
+          std::lock_guard<std::mutex> lock(current_motion_mutex);
+          on_planner_motion = current_motion->name == "planner_motion";
+        }
+        if (on_planner_motion && planner_state.enabled && planner_state.initialized) {
+          planner_start_pending_ = false;
+          is_planner_ready_ = true;
+          {
+            std::lock_guard<std::mutex> lock(current_motion_mutex);
+            operator_state.play = true;
+          }
+          std::cout << "[ZMQManager] Planner initialized (lockstep, "
+                    << planner_pending_boundaries_ << " boundaries)" << std::endl;
+        } else if (!planner_state.enabled || ++planner_pending_boundaries_ > LOCKSTEP_PLANNER_INIT_BOUNDARIES) {
+          std::cerr << "[ZMQCommandManager ERROR] Planner initialization failed in lockstep" << std::endl;
+          operator_state.stop = true;
+          return;
+        } else {
+          return;
+        }
+      }
+
       // Handle safety reset from interface manager (same as GamepadManager)
       if (CheckAndClearSafetyReset()) {
         {
@@ -511,6 +538,11 @@ class ZMQManager : public InputInterface {
             planner_state.enabled = true;
             std::cout << "[ZMQManager] Planner enabled" << std::endl;
 
+            if (planner_lockstep_) {  // Planner() only runs between Input() calls: finish later
+              planner_start_pending_ = true;
+              planner_pending_boundaries_ = 0;
+              return;
+            }
             // Wait for planner to be initialized with timeout (5 seconds)
             auto wait_start = std::chrono::steady_clock::now();
             constexpr auto PLANNER_INIT_TIMEOUT = std::chrono::seconds(10);
@@ -565,6 +597,11 @@ class ZMQManager : public InputInterface {
           std::cout << "[ZMQManager] Planner enabled" << std::endl;
         }
         
+        if (planner_lockstep_) {  // Planner() only runs between Input() calls: finish later
+          planner_start_pending_ = true;
+          planner_pending_boundaries_ = 0;
+          return;
+        }
         // Wait for initialization
         auto wait_start = std::chrono::steady_clock::now();
         constexpr auto PLANNER_INIT_TIMEOUT = std::chrono::seconds(10);
@@ -609,7 +646,16 @@ class ZMQManager : public InputInterface {
         constexpr auto PLANNER_TIMEOUT = std::chrono::milliseconds(1000);
         auto time_since_last_planner = std::chrono::steady_clock::now() - latest_planner_message_.timestamp;
         
+        // Lockstep counts staleness in simulation boundaries, not wall time.
+        if (!latest_planner_message_.valid) {
+          ++boundaries_since_planner_message_;
+        }
+        const bool planner_timed_out = planner_lockstep_
+            ? boundaries_since_planner_message_ >= LOCKSTEP_PLANNER_TIMEOUT_BOUNDARIES
+            : time_since_last_planner >= PLANNER_TIMEOUT;
+
         if (latest_planner_message_.valid) {
+          boundaries_since_planner_message_ = 0;
           // Valid planner message within timeout - use it
           // Update upper body control state based on this message
           has_upper_body_control_ = latest_planner_message_.upper_body_position.has_value();
@@ -647,7 +693,7 @@ class ZMQManager : public InputInterface {
           // Clear planner buffer to avoid using stale data
           latest_planner_message_.valid = false;
 
-        } else if (!latest_planner_message_.valid && time_since_last_planner >= PLANNER_TIMEOUT) {
+        } else if (!latest_planner_message_.valid && planner_timed_out) {
           // Planner timeout - reset to IDLE and clear buffer
           has_upper_body_control_ = false;
 
@@ -1275,6 +1321,15 @@ class ZMQManager : public InputInterface {
     /// True when transitioning from streamed-motion (teleop) back to planner mode;
     /// used to keep forwarding VR/hand data from the pose interface until planner is ready.
     bool switch_from_teleop_to_planner_ = false;
+    // Simulation-clock lockstep: never block Input() waiting for the planner
+    // (it only advances between Input() calls) and count planner-message
+    // staleness in control boundaries rather than wall time.
+    bool planner_lockstep_ = false;
+    bool planner_start_pending_ = false;
+    int planner_pending_boundaries_ = 0;
+    int boundaries_since_planner_message_ = 0;
+    static constexpr int LOCKSTEP_PLANNER_INIT_BOUNDARIES = 500;    // 10 s at 50 Hz
+    static constexpr int LOCKSTEP_PLANNER_TIMEOUT_BOUNDARIES = 50;  // 1 s at 50 Hz
 
     /// Tracks the previous frame's VR-3-point state to detect enable/disable transitions
     /// and automatically toggle encoder mode accordingly.

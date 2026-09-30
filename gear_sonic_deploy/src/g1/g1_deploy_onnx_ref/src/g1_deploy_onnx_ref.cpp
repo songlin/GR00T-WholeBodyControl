@@ -2737,6 +2737,14 @@ class G1Deploy {
           }
         }
 
+        // Planner on the simulation clock: every planner_dt of simulated time,
+        // and immediately while it still has to initialize.
+        if (planner_ && planner_->planner_state_.enabled) {
+          const auto every = std::max<uint64_t>(1, static_cast<uint64_t>(std::lround(planner_dt_ / control_dt_)));
+          if (!planner_->planner_state_.initialized || lockstep_control_count_ % every == 0) {
+            Planner();
+          }
+        }
         if (!ControlOnce()) {
           std::cerr << "[Lockstep ERROR] Control failed before acknowledgement"
                     << " session=" << work->envelope.session
@@ -4648,10 +4656,6 @@ int main(int argc, char const* argv[]) {
 
   if (simLockstep && inputType != "zmq_manager") {
     std::cerr << "Error: --sim-lockstep requires --input-type zmq_manager" << std::endl;
-    return 1;
-  }
-  if (simLockstep && !plannerFile.empty()) {
-    std::cerr << "Error: --sim-lockstep does not permit a planner model" << std::endl;
     return 1;
   }
 
