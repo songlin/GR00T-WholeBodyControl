@@ -224,6 +224,11 @@ public:
         return ctx.cmd_buffer.GetDataWithTime();
     }
 
+    void ClearRecordingCommands() {
+        left_.cmd_buffer.Clear();
+        right_.cmd_buffer.Clear();
+    }
+
     bool hasState(bool is_left) const { return getStateWithTime(is_left).HasData(); }
     bool hasCommand(bool is_left) const { return getCommandWithTime(is_left).HasData(); }
 

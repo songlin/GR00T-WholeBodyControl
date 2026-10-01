@@ -76,6 +76,9 @@
  */
 class StateLogger {
  public:
+  uint64_t NextRecordingIndex() const {
+    return next_index_.load(std::memory_order_relaxed);
+  }
   struct Entry {
     uint64_t index = 0;
     std::chrono::system_clock::time_point timestamp; // wall-clock time (for CSV logging)

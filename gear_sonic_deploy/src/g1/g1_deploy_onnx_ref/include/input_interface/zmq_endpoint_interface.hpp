@@ -391,6 +391,17 @@ public:
                     }
                     // Decode into a new MotionSequence with current playback position
                     auto result = DecodeIntoMotionSequence(current_frame, streamed_motion_, stream_window_start_, heading_state_buffer);
+                    if (recording_session::enabled() && recording_requested_ns_ && last_receive_time_ &&
+                        ((result.protocol_version == 4 && !result.token_data.empty() && !result.motion) ||
+                         (result.protocol_version != 4 && result.motion))) {
+                        const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            last_receive_time_->time_since_epoch()).count();
+                        if (ns >= recording_requested_ns_) {
+                            recording_header_ = buffered_header_;
+                            recording_buffers_ = buffered_buffers_;
+                            recording_valid_ns_ = ns;
+                        }
+                    }
                     
                     // Handle Protocol v4 (token-only) - no motion, just tokens
                     if (result.protocol_version == 4) {
@@ -591,6 +602,73 @@ public:
         std::function<void(const LockstepTokenBundle&)> callback) override {
       std::lock_guard<std::mutex> lock(lockstep_callback_mutex_);
       lockstep_callback_ = std::move(callback);
+    }
+
+    // Armed by the existing manager command. No receive or control thread waits.
+    void ArmRecordingReset(int64_t requested_ns) {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      recording_requested_ns_ = requested_ns;
+      recording_valid_ns_ = 0;
+      recording_header_ = {};
+      recording_buffers_.clear();
+    }
+
+    bool ApplyRecordingInput(std::shared_ptr<const MotionSequence>& motion,
+                             int& frame, DataBuffer<HeadingState>& heading, int64_t& input_ns) {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      if (!use_zmq_stream || !recording_requested_ns_ ||
+          recording_valid_ns_ < recording_requested_ns_ || recording_buffers_.empty())
+        return false;
+      // Preserve exactly one packet already validated by the ordinary decoder.
+      auto pending_header = buffered_header_;
+      auto pending_buffers = std::move(buffered_buffers_);
+      const bool pending = has_new_data_;
+      const auto receive = last_receive_time_;
+      buffered_header_ = recording_header_;
+      buffered_buffers_ = recording_buffers_;
+      input_ns = recording_valid_ns_;
+      ResetStreamedMotion();
+      external_token_state_.Clear();
+      left_hand_joint_.Clear();
+      right_hand_joint_.Clear();
+      vr_3point_position_.Clear();
+      vr_3point_orientation_.Clear();
+      vr_3point_compliance_.Clear();
+      vr_5point_position_.Clear();
+      vr_5point_orientation_.Clear();
+      upper_body_joint_positions_.Clear();
+      upper_body_joint_velocities_.Clear();
+      has_external_token_state_ = false;
+      has_hand_joints_ = false;
+      has_vr_3point_control_ = false;
+      has_vr_5point_control_ = false;
+      has_upper_body_control_ = false;
+      heading.SetData(HeadingState{});
+      auto result = DecodeIntoMotionSequence(0, streamed_motion_, 0, heading);
+      buffered_header_ = std::move(pending_header);
+      buffered_buffers_ = std::move(pending_buffers);
+      has_new_data_ = pending;
+      last_receive_time_ = receive;
+      if (result.protocol_version == 4 && !result.token_data.empty()) {
+        external_token_state_.SetData(result.token_data);
+        has_external_token_state_ = true;
+        auto token_motion = std::make_shared<MotionSequence>(*motion);
+        token_motion->SetEncodeMode(-1);
+        motion = token_motion;
+        frame = 0;
+      } else {
+        if (!result.motion)
+          throw std::runtime_error("Previously validated recording input failed to decode after reset");
+        streamed_motion_ = result.motion;
+        stream_window_start_ = result.window_start;
+        motion = streamed_motion_;
+        frame = 0;
+      }
+      recording_requested_ns_ = 0;
+      recording_valid_ns_ = 0;
+      recording_header_ = {};
+      recording_buffers_.clear();
+      return true;
     }
 
     void ResetLockstepInput() override {
@@ -1961,6 +2039,9 @@ private:
     // ------------------------------------------------------------------
     // Thread-safe data buffering (written by ZMQ subscriber thread, read by input thread)
     // ------------------------------------------------------------------
+    int64_t recording_requested_ns_ = 0, recording_valid_ns_ = 0; ///< Clear request and validated packet times; guarded by data_mutex_.
+    ZMQPackedMessageSubscriber::DecodedHeader recording_header_; ///< Validated post-request packet header; guarded by data_mutex_.
+    std::vector<std::vector<uint8_t>> recording_buffers_; ///< Validated post-request packet data; guarded by data_mutex_.
     mutable std::mutex data_mutex_;           ///< Guards the fields below.
     bool has_new_data_ = false;               ///< True when a new message is waiting to be decoded.
     ZMQPackedMessageSubscriber::DecodedHeader buffered_header_;  ///< Latest JSON header.

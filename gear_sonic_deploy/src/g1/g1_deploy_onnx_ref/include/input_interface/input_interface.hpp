@@ -41,6 +41,7 @@
 #include "../math_utils.hpp"         // For float_to_double
 #include "../localmotion_kplanner.hpp" // For PlannerState, MovementState
 #include "../sim_lockstep.hpp"
+#include "../recording_session.hpp"
 
 /**
  * @class InputInterface
@@ -171,6 +172,15 @@ public:
     }
 
     virtual void ResetLockstepInput() {}
+
+    virtual uint64_t PendingRecordingReset() const {
+        return 0;
+    }
+    virtual uint64_t ApplyRecordingReset(std::shared_ptr<const MotionSequence>& motion,
+                                        int& frame, DataBuffer<HeadingState>& heading,
+                                        int64_t& input_ns) {
+        return 0;
+    }
 
     virtual bool IsStreamedMotionMode() const { return false; }
 

@@ -252,6 +252,7 @@ class G1Deploy {
     // Flag to disable CRC checking for MuJoCo simulation
     bool disable_crc_check_ = false;
     bool sim_lockstep_ = false;
+    std::shared_mutex recording_reset_mutex_;
     
     bool reinitialize_heading_ = true;
     bool report_temperature_ = false;
@@ -3598,6 +3599,9 @@ class G1Deploy {
      * 4. Optionally records / plays back input state for offline replay.
      */
     void Input() {
+      std::shared_lock<std::shared_mutex> recording_guard(recording_reset_mutex_, std::defer_lock);
+      if (recording_session::enabled())
+        recording_guard.lock();
       if (operator_state.stop) { return; }
       
       // Update input interface (poll for new data)
@@ -3746,6 +3750,9 @@ class G1Deploy {
      * and picked up by CurrentFrameAdvancement() in the control thread.
      */
     void Planner() {
+      std::shared_lock<std::shared_mutex> recording_guard(recording_reset_mutex_, std::defer_lock);
+      if (recording_session::enabled())
+        recording_guard.lock();
       if (operator_state.stop) { return; }
       auto low_state_data = low_state_buffer_.GetDataWithTime();
       const std::shared_ptr<const LowState_> ls = low_state_data.data;
@@ -3966,6 +3973,42 @@ class G1Deploy {
       }
     }
 
+    void ClearRecordingControlState() {
+      if (state_logger_)
+        state_logger_->ResetHistoryKeepIndex();
+      saved_frame_for_observation_window_ = 0;
+      reinitialize_heading_ = true;
+      std::fill(token_state_data_.begin(), token_state_data_.end(), 0.0);
+      last_action.fill(0.0);
+      last_left_hand_action.fill(0.0);
+      last_right_hand_action.fill(0.0);
+      left_hand_joint_buffer_.fill(0.0);
+      right_hand_joint_buffer_.fill(0.0);
+      first_token_received_ = false;
+      last_token_time_.reset();
+      motor_command_buffer_.Clear();
+      dex3_hands_.ClearRecordingCommands();
+      movement_state_buffer_.Clear();
+      last_movement_state_ = MovementState(static_cast<int>(LocomotionMode::IDLE), {0, 0, 0}, {1, 0, 0}, -1, -1);
+      replan_interval_ = 1.0f;
+      replan_interval_counter_ = 0.0f;
+      idle_readapt_stored_ = false;
+      idle_readapt_state_ = IdleReadaptState::IDLE;
+      idle_readapt_original_targets_.fill(0.0);
+      if (planner_) {
+        std::lock_guard<std::mutex> planner_lock(planner_->planner_motion_mutex_);
+        planner_->planner_state_.enabled = false;
+        planner_->planner_state_.initialized = false;
+        planner_->motion_available_ = false;
+        planner_->gen_frame_ = 0;
+        planner_->planner_motion_50hz_.timesteps = 0;
+      }
+      if (planner_motion_)
+        planner_motion_->timesteps = 0;
+      // LowState/IMU/hand feedback and all safety-stop/temperature flags are retained.
+      // The fresh validated high-level packet was installed immediately before this call.
+    }
+
     /**
      * @brief Control thread body (50 Hz) — the main real-time control loop.
      *
@@ -3985,6 +4028,25 @@ class G1Deploy {
      *    10. Periodic timing log every 50 ticks (~1 s).
      */
     bool ControlOnce() {
+      std::unique_lock<std::shared_mutex> recording_guard(recording_reset_mutex_, std::defer_lock);
+      uint64_t recording_clear_id = 0, recording_first_index = 0;
+      if (recording_session::enabled() && !operator_state.stop && program_state_ == ProgramState::CONTROL &&
+          input_interface_->PendingRecordingReset() && recording_guard.try_lock()) {
+        int64_t input_ns = 0;
+        {
+          std::lock_guard<std::mutex> motion_lock(current_motion_mutex_);
+          recording_clear_id = input_interface_->ApplyRecordingReset(
+              current_motion_, current_frame_, heading_state_buffer_, input_ns);
+          if (recording_clear_id) {
+            ClearRecordingControlState();
+            operator_state.play = true;
+            recording_first_index = state_logger_ ? state_logger_->NextRecordingIndex() : 0;
+            recording_session::events().add("applied", recording_clear_id, input_ns, recording_first_index);
+          }
+        }
+        if (!recording_clear_id)
+          recording_guard.unlock();
+      }
       if (operator_state.stop) { return false; }
 
       switch (program_state_) {
@@ -4161,6 +4223,8 @@ class G1Deploy {
             return false;
           }
           auto motor_command_end_time = std::chrono::steady_clock::now();
+          if (recording_clear_id)
+            recording_session::events().add("first_decision", recording_clear_id, 0, recording_first_index);
 
           // Update Dex3 hands max close ratio from keyboard-controlled value (X/C keys)
           dex3_hands_.SetMaxCloseRatio(input_interface_->GetMaxCloseRatio());
@@ -4312,6 +4376,8 @@ class G1Deploy {
  * The main loop sleeps until the operator issues a stop signal or ROS2 shuts down.
  */
 int main(int argc, char const* argv[]) {
+  if (recording_session::enabled())
+    (void)recording_session::events();
   std::cout << "[DEBUG] Program starting..." << std::endl;
   if (argc < 4) {
     std::cout << "Usage: " << argv[0] << " <network_interface> <policy_file> <motion_data_path> [OPTIONS]"
