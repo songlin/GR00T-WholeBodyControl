@@ -446,6 +446,28 @@ class ZMQManager : public InputInterface {
       if (pose_interface_) pose_interface_->SetLockstepTokenCallback(std::move(callback));
     }
 
+    uint64_t PendingRecordingReset() const override {
+      return recording_pending_.load();
+    }
+
+    uint64_t ApplyRecordingReset(std::shared_ptr<const MotionSequence>& motion,
+                                int& frame, DataBuffer<HeadingState>& heading, int64_t& input_ns) override {
+      std::lock_guard<std::mutex> command_lock(command_mutex_);
+      const auto id = recording_pending_.load();
+      if (!id || active_mode_ != ManagedMode::STREAMED_MOTION || !pose_interface_)
+        return 0;
+      if (!pose_interface_->ApplyRecordingInput(motion, frame, heading, input_ns))
+        return 0;
+      {
+        std::lock_guard<std::mutex> planner_lock(planner_mutex_);
+        latest_planner_message_ = {};
+        is_planner_ready_ = false;
+        switch_from_teleop_to_planner_ = false;
+      }
+      recording_pending_ = 0;
+      return id;
+    }
+
     void ResetLockstepInput() override {
       if (pose_interface_) pose_interface_->ResetLockstepInput();
       has_external_token_state_ = false;
@@ -775,6 +797,36 @@ class ZMQManager : public InputInterface {
       // Update buffer with OR logic to accumulate start/stop signals
       std::lock_guard<std::mutex> lock(command_mutex_);
       
+      if (recording_session::enabled()) {
+        uint64_t request = 0;
+        for (size_t i = 0; i < hdr.fields.size() && i < bufs.size(); ++i) {
+          if (hdr.fields[i].name == "recording_clear_id" && hdr.fields[i].dtype == "i64" && bufs[i].size == 8) {
+            int64_t value = 0;
+            std::memcpy(&value, bufs[i].data, 8);
+            if (needs_swap)
+              value = byte_swap(value);
+            if (value > 0)
+              request = static_cast<uint64_t>(value);
+          }
+        }
+        if (cmd.stop || cmd.planner) {
+          const auto old = recording_pending_.exchange(0);
+          if (old)
+            recording_session::events().add("cancelled_mode_or_stop", old);
+          pose_interface_->ArmRecordingReset(0);
+        } else if (request > recording_last_seen_) {
+          const auto old = recording_pending_.load();
+          if (old)
+            recording_session::events().add("superseded", old);
+          recording_last_seen_ = request;
+          recording_pending_ = request;
+          const auto at = recording_session::now_ns();
+          pose_interface_->ArmRecordingReset(at);
+          recording_session::events().add("requested", request);
+        } else if (request)
+          recording_session::events().add("duplicate_ignored", request);
+      }
+
       // If starting new accumulation cycle, reset start/stop
       if (!latest_command_.valid) {
         latest_command_.start = false;
@@ -1256,6 +1308,8 @@ class ZMQManager : public InputInterface {
     // ------------------------------------------------------------------
     ManagedMode active_mode_;           ///< Current operational mode (PLANNER or STREAMED_MOTION).
     
+    std::atomic<uint64_t> recording_pending_{0}; ///< Pending clear identifier, read atomically by the control loop.
+    uint64_t recording_last_seen_ = 0; ///< Last accepted clear identifier; guarded by command_mutex_.
     std::mutex command_mutex_;          ///< Guards access to latest_command_.
     CommandMessage latest_command_;     ///< Most recent (or accumulated) command message.
     
