@@ -8,5 +8,5 @@ wandb:
   wandb_group: null
   wandb_id: null
   wandb_entity: null
-  wandb_dir: '/tmp' # use /tmp so that it will automatically be cleaned up
-  # wandb_dir: ${experiment_dir}/.wandb
+  # wandb_dir: '/tmp' # use /tmp so that it will automatically be cleaned up
+  wandb_dir: ${experiment_dir}/.wandb
