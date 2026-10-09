@@ -16,6 +16,7 @@ from rich import progress
 from scipy.spatial import transform
 import torch
 import torch.multiprocessing as mp
+from tqdm import tqdm
 
 from gear_sonic.isaac_utils import rotations
 from gear_sonic.trl.utils import common
@@ -2270,7 +2271,7 @@ class MotionLibBase:
             self._num_unique_motions, device=self._device, dtype=torch.long
         )
         # Compute motion lengths and frame counts for all unique motions using self._motion_data_keys
-        for i, motion_key in enumerate(self._motion_data_keys):
+        for i, motion_key in tqdm(enumerate(self._motion_data_keys), total=len(self._motion_data_keys)):
             motion_data = self._motion_data_load[motion_key]
 
             # Compute motion length and frame count similar to how it's done in load_motions

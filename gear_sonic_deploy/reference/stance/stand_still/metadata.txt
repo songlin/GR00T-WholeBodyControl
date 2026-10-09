@@ -1,0 +1,7 @@
+Metadata for: stand_still
+==============================
+
+Body part indexes:
+[ 0  4 10 18  5 11 19  9 16 22 28 17 23 29]
+
+Total timesteps: 500

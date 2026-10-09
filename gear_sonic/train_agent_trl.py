@@ -227,6 +227,7 @@ def main(config: OmegaConf):
 
     if simulator_type == "IsaacSim":
         try:
+            # python -c "from importlib.metadata import version; print(version('isaacsim'))"
             with open("./rl/simulator/isaacsim/.isaacsim_version", encoding="utf-8") as f:
                 DEFAULT_ISAACSIM_VERSION = f.read().strip()
         except FileNotFoundError:
@@ -448,7 +449,8 @@ def main(config: OmegaConf):
     ################
     # Training
     ################
-    trainer = custom_instantiate(
+    from gear_sonic.trl.trainer.ppo_trainer_aux_loss import TRLAuxLossPPOTrainer
+    trainer:TRLAuxLossPPOTrainer = custom_instantiate(
         config.trainer,
         args=training_args,
         config=config.algo.config,

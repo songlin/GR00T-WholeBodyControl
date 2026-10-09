@@ -165,8 +165,8 @@ class ManagerEnvWrapper:
 
         try:
             self.viewer_focused = True
-            self.env.viewport_camera_controller.update_view_to_world()
-            self.env.viewport_camera_controller.update_view_to_asset_root("robot")
+            # self.env.viewport_camera_controller.update_view_to_world()
+            # self.env.viewport_camera_controller.update_view_to_asset_root("robot")
         except:  # noqa: E722
             self.viewer_focused = False
 
@@ -1030,8 +1030,8 @@ class ManagerEnvWrapper:
     def focusing_viewer(self):
         if not self.viewer_focused:
             # Focus on robot asset (tracking mode)
-            self.env.viewport_camera_controller.update_view_to_world()
-            self.env.viewport_camera_controller.update_view_to_asset_root("robot")
+            # self.env.viewport_camera_controller.update_view_to_world()
+            # self.env.viewport_camera_controller.update_view_to_asset_root("robot")
             self.viewer_focused = True
             logger.info("Focused on robot")
         else:

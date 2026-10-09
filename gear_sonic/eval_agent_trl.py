@@ -657,6 +657,10 @@ def main(override_config: omegaconf.OmegaConf):
                     obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
     if simulator_type == "IsaacSim":
+        # os._exit skips interpreter cleanup, so flush or buffered output (e.g. final metrics
+        # printed when stdout is redirected to a file) is lost.
+        sys.stdout.flush()
+        sys.stderr.flush()
         os._exit(0)
 
 

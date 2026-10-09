@@ -17,11 +17,12 @@ from isaaclab.utils.math import (
 import torch
 
 from gear_sonic.envs.env_utils import joint_utils
-from gear_sonic.envs.manager_env.mdp import commands, utils
+from gear_sonic.envs.manager_env.mdp import utils
+import gear_sonic.envs.manager_env.mdp.commands as commands
 from gear_sonic.trl.utils import torch_transform
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
+    from isaaclab.envs import ManagerBasedRLEnv
 
 
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -483,7 +484,7 @@ class ObservationsCfg:
     residual_action: ResidualAction = None
 
 
-def command_max(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get maximum reference body positions in heading-local frame.
 
     Returns:
@@ -494,7 +495,7 @@ def command_max(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return command.command_max
 
 
-def command_vel(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_vel(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference body velocities.
 
     Returns:
@@ -504,7 +505,7 @@ def command_vel(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return command.command_vel
 
 
-def command_max_diff(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get difference between reference and robot body positions.
 
     Returns:
@@ -514,7 +515,7 @@ def command_max_diff(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return command.command_max_diff
 
 
-def command_max_diff_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences for multiple future frames.
 
     Returns:
@@ -525,7 +526,7 @@ def command_max_diff_multi_future(env: ManagerBasedEnv, command_name: str) -> to
     return command.command_max_diff_multi_future
 
 
-def command_z(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_z(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference root z-height.
 
     Returns:
@@ -536,7 +537,7 @@ def command_z(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
 
 
 def command_z_multi_future(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference root z-heights for multiple future frames.
 
@@ -556,7 +557,7 @@ def command_z_multi_future(
         return command.command_z_multi_future
 
 
-def command_max_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get maximum reference body positions for multiple future frames in heading-local frame.
 
     Returns:
@@ -568,7 +569,7 @@ def command_max_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.T
 
 
 def command_multi_future(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference body positions in body-local frame for multiple future frames.
 
@@ -588,7 +589,7 @@ def command_multi_future(
 
 
 def command_multi_future_joint_pos(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference joint positions for multiple future frames.
 
@@ -610,7 +611,7 @@ def command_multi_future_joint_pos(
 
 
 def command_multi_future_joint_body_pos(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference joint body positions for multiple future frames.
 
@@ -632,7 +633,7 @@ def command_multi_future_joint_body_pos(
 
 
 def command_multi_future_joint_body_diff_pos(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference-minus-robot joint body position differences for multiple future frames.
 
@@ -654,7 +655,7 @@ def command_multi_future_joint_body_diff_pos(
 
 
 def command_multi_future_joint_body_abs_pos(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get absolute reference joint body positions for multiple future frames.
 
@@ -675,7 +676,7 @@ def command_multi_future_joint_body_abs_pos(
         return command.command_multi_future_joint_body_abs_pos
 
 
-def command_multi_future_lower_body(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_multi_future_lower_body(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference lower-body positions for multiple future frames in body-local frame.
 
     Returns:
@@ -687,7 +688,7 @@ def command_multi_future_lower_body(env: ManagerBasedEnv, command_name: str) -> 
 
 
 def command_multi_future_lower_body_joint_pos(
-    env: ManagerBasedEnv, command_name: str
+    env: ManagerBasedRLEnv, command_name: str
 ) -> torch.Tensor:
     """Get reference lower-body joint positions for multiple future frames.
 
@@ -699,7 +700,7 @@ def command_multi_future_lower_body_joint_pos(
     return command.command_multi_future_lower_body_joint_pos
 
 
-def command_max_diff_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff_w(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences in world frame.
 
     Returns:
@@ -709,7 +710,7 @@ def command_max_diff_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return command.command_max_diff_w
 
 
-def command_max_diff_w_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff_w_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences in world frame for multiple future frames.
 
     Returns:
@@ -720,7 +721,7 @@ def command_max_diff_w_multi_future(env: ManagerBasedEnv, command_name: str) -> 
     return command.command_max_diff_w_multi_future
 
 
-def command_max_diff_l(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff_l(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences in body-local frame.
 
     Returns:
@@ -730,7 +731,7 @@ def command_max_diff_l(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return command.command_max_diff_l
 
 
-def command_max_diff_l_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_max_diff_l_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences in body-local frame for multiple future frames.
 
     Returns:
@@ -741,7 +742,7 @@ def command_max_diff_l_multi_future(env: ManagerBasedEnv, command_name: str) -> 
     return command.command_max_diff_l_multi_future
 
 
-def command_num_frames(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def command_num_frames(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Per-env number of valid future frames. Shape [num_envs, 1]."""
     command: commands.TrackingCommand = env.command_manager.get_term(command_name)
     if getattr(command, "per_env_num_frames", None) is not None:
@@ -751,7 +752,7 @@ def command_num_frames(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     )
 
 
-def robot_anchor_ori_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_anchor_ori_w(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get robot anchor (pelvis) orientation in world frame as 6D rotation.
 
     Returns:
@@ -762,7 +763,7 @@ def robot_anchor_ori_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return mat[..., :2].reshape(mat.shape[0], -1)
 
 
-def motion_anchor_gravity_dir(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def motion_anchor_gravity_dir(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Compute gravity direction in the reference motion anchor frame.
 
     Transforms the world-frame down vector into the reference anchor's local frame.
@@ -775,7 +776,7 @@ def motion_anchor_gravity_dir(env: ManagerBasedEnv, command_name: str) -> torch.
     return gravity_dir
 
 
-def gravity_dir(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def gravity_dir(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Compute gravity direction in the robot anchor (pelvis) frame.
 
     Transforms the world-frame down vector into the robot's local frame.
@@ -789,7 +790,7 @@ def gravity_dir(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return gravity_dir
 
 
-def robot_anchor_lin_vel_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_anchor_lin_vel_w(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get robot anchor (pelvis) linear velocity in world frame.
 
     Returns:
@@ -800,7 +801,7 @@ def robot_anchor_lin_vel_w(env: ManagerBasedEnv, command_name: str) -> torch.Ten
     return command.robot_anchor_vel_w[:, :3].view(env.num_envs, -1)
 
 
-def robot_anchor_ang_vel_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_anchor_ang_vel_w(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get robot anchor (pelvis) angular velocity in world frame.
 
     Returns:
@@ -811,7 +812,7 @@ def robot_anchor_ang_vel_w(env: ManagerBasedEnv, command_name: str) -> torch.Ten
     return command.robot_anchor_vel_w[:, 3:6].view(env.num_envs, -1)
 
 
-def robot_body_pos_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_body_pos_b(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get robot body positions in robot anchor (pelvis) local frame.
 
     Transforms all tracked body positions from world frame into the robot's
@@ -833,7 +834,7 @@ def robot_body_pos_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return pos_b.view(env.num_envs, -1)
 
 
-def robot_body_pos_diff_l(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_body_pos_diff_l(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference-minus-robot body position differences in world frame.
 
     Computes (reference_body_pos - robot_body_pos) for each tracked body.
@@ -852,7 +853,7 @@ def robot_body_pos_diff_l(env: ManagerBasedEnv, command_name: str) -> torch.Tens
     return body_pos_diff_l.view(env.num_envs, -1)
 
 
-def robot_body_ori_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def robot_body_ori_b(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get robot body orientations in robot anchor (pelvis) local frame as 6D rotation.
 
     Returns:
@@ -872,7 +873,7 @@ def robot_body_ori_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return mat[..., :2].reshape(mat.shape[0], -1)
 
 
-def motion_anchor_pos_b(env: ManagerBasedEnv, command_name: str, mask_out_z=False) -> torch.Tensor:
+def motion_anchor_pos_b(env: ManagerBasedRLEnv, command_name: str, mask_out_z=False) -> torch.Tensor:
     """Get reference motion anchor position relative to robot anchor in robot-local frame.
 
     Computes the position of the reference motion's root relative to the robot's
@@ -898,7 +899,7 @@ def motion_anchor_pos_b(env: ManagerBasedEnv, command_name: str, mask_out_z=Fals
     return pos.view(env.num_envs, -1)
 
 
-def motion_anchor_yaw_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def motion_anchor_yaw_b(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get yaw (heading) difference between reference anchor and robot anchor.
 
     Extracts only the heading component of the relative orientation between the
@@ -919,7 +920,7 @@ def motion_anchor_yaw_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor
     return yaw.view(env.num_envs, -1)
 
 
-def motion_anchor_ori_heading_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def motion_anchor_ori_heading_b(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference root orientation with heading removed as 6D rotation.
 
     Removes the reference anchor's own heading (yaw) from the reference root
@@ -940,7 +941,7 @@ def motion_anchor_ori_heading_b(env: ManagerBasedEnv, command_name: str) -> torc
     return deheaded_ref_root_mat
 
 
-def motion_anchor_ori_b(env: ManagerBasedEnv, command_name: str, non_flatten=False) -> torch.Tensor:
+def motion_anchor_ori_b(env: ManagerBasedRLEnv, command_name: str, non_flatten=False) -> torch.Tensor:
     """Get reference anchor orientation relative to robot anchor as 6D rotation.
 
     Computes the orientation difference between the reference motion root and the
@@ -971,7 +972,7 @@ def motion_anchor_ori_b(env: ManagerBasedEnv, command_name: str, non_flatten=Fal
 
 
 def motion_anchor_ori_refheading(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Motion anchor orientation canonicalized by its own heading.
 
@@ -990,7 +991,7 @@ def motion_anchor_ori_refheading(
 
 
 def motion_anchor_ori_heading(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Motion anchor orientation canonicalized by robot heading (yaw).
 
@@ -1008,7 +1009,7 @@ def motion_anchor_ori_heading(
     return ori
 
 
-def motion_anchor_ori_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def motion_anchor_ori_w(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference motion anchor orientation in world frame as 6D rotation.
 
     Returns:
@@ -1020,7 +1021,7 @@ def motion_anchor_ori_w(env: ManagerBasedEnv, command_name: str) -> torch.Tensor
 
 
 def motion_anchor_ori_b_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference-vs-robot root orientation difference for multiple future frames in body-local frame.
 
@@ -1044,7 +1045,7 @@ def motion_anchor_ori_b_mf(
 
 
 def motion_anchor_ori_w_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get reference root orientations in world frame for multiple future frames as 6D rotation.
 
@@ -1069,7 +1070,7 @@ def motion_anchor_ori_w_mf(
 
 
 def command_multi_future_egocentric_joint_transforms(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Egocentric joint transforms (positions + rotations) for reference frames.
 
@@ -1091,7 +1092,7 @@ def command_multi_future_egocentric_joint_transforms(
 
 
 def command_multi_future_egocentric_joint_positions(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Egocentric joint positions for reference frames.
 
@@ -1110,7 +1111,7 @@ def command_multi_future_egocentric_joint_positions(
 
 
 def command_multi_future_egocentric_joint_rotations(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Egocentric joint rotations (6D) for reference frames.
 
@@ -1129,7 +1130,7 @@ def command_multi_future_egocentric_joint_rotations(
 
 
 def command_multi_future_root_transforms(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Root transforms (position + rotation) relative to the first reference frame.
 
@@ -1151,7 +1152,7 @@ def command_multi_future_root_transforms(
 
 
 def motion_anchor_ori_heading_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Motion anchor orientation normalized by robot heading (yaw) only, for multi-future frames.
 
@@ -1174,7 +1175,7 @@ def motion_anchor_ori_heading_mf(
 
 
 def motion_anchor_ori_refheading_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Motion anchor orientation canonicalized by the first target frame's heading.
 
@@ -1196,7 +1197,7 @@ def motion_anchor_ori_refheading_mf(
         return command.root_rot_dif_refheading_multi_future.reshape(env.num_envs, -1)
 
 
-def heading_diff_robot_ref(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def heading_diff_robot_ref(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Relative heading from robot to reference motion's first target frame.
 
     Computes the rotation from the robot's heading to the reference motion's first
@@ -1210,7 +1211,7 @@ def heading_diff_robot_ref(env: ManagerBasedEnv, command_name: str) -> torch.Ten
 
 
 ### 3 point force based tracking
-def vr_3point_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point tracking target positions in heading-local frame.
 
     Transforms the reference 3-point body positions (left wrist, right wrist, head)
@@ -1247,7 +1248,7 @@ def _phase_to_weight_pyramid(phase, start=0.25, end=0.75):
 
 
 def vr_3point_target_compliant_multi_future(
-    env: ManagerBasedEnv, motion_command_name: str, force_command_name: str
+    env: ManagerBasedRLEnv, motion_command_name: str, force_command_name: str
 ) -> torch.Tensor:
     """Get force-compliant VR 3-point targets for multiple future frames in heading-local frame.
 
@@ -1292,7 +1293,7 @@ def vr_3point_target_compliant_multi_future(
     return deheaded_pos_b.view(env.num_envs, -1)
 
 
-def vr_3point_target_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_target_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point tracking target positions for multiple future frames in heading-local frame.
 
     Returns:
@@ -1309,7 +1310,7 @@ def vr_3point_target_multi_future(env: ManagerBasedEnv, command_name: str) -> to
     return deheaded_pos_b.view(env.num_envs, -1)
 
 
-def head_orn_target_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def head_orn_target_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get reference head orientation for multiple future frames, de-headed by robot yaw.
 
     Returns:
@@ -1326,7 +1327,7 @@ def head_orn_target_multi_future(env: ManagerBasedEnv, command_name: str) -> tor
     return deheaded_head_quat.view(env.num_envs, -1)
 
 
-def vr_3point_orn_target_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_orn_target_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point body orientations for multiple future frames, de-headed by robot yaw.
 
     Returns:
@@ -1345,7 +1346,7 @@ def vr_3point_orn_target_multi_future(env: ManagerBasedEnv, command_name: str) -
     return deheaded_vr_3point_quat.view(env.num_envs, -1)
 
 
-def vr_3point_local_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_local_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point positions in reference motion anchor local frame.
 
     NOTE: "local" here means relative to the reference motion root, not the robot root.
@@ -1363,7 +1364,7 @@ def vr_3point_local_target(env: ManagerBasedEnv, command_name: str) -> torch.Ten
     return ref_3point_root.view(env.num_envs, -1)
 
 
-def vr_3point_local_target_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_local_target_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point positions in reference anchor local frame for multiple future frames.
 
     All future frames use the current reference anchor orientation for canonicalization.
@@ -1384,7 +1385,7 @@ def vr_3point_local_target_multi_future(env: ManagerBasedEnv, command_name: str)
 
 
 def vr_3point_local_target_compliant(
-    env: ManagerBasedEnv,
+    env: ManagerBasedRLEnv,
     motion_command_name: str,
     force_command_name: str,
     zero_out_head_position: bool = False,
@@ -1427,7 +1428,7 @@ def vr_3point_local_target_compliant(
     return ref_3point_root.view(env.num_envs, -1)
 
 
-def vr_3point_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_3point_local_orn_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get VR 3-point body orientations in reference anchor local frame.
 
     Returns:
@@ -1442,7 +1443,7 @@ def vr_3point_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch
     return ref_3point_root.view(env.num_envs, -1)
 
 
-def vr_wrists_local_pos_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_wrists_local_pos_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get wrist positions in reference anchor local frame (wrists only, no head).
 
     Returns:
@@ -1455,7 +1456,7 @@ def vr_wrists_local_pos_target(env: ManagerBasedEnv, command_name: str) -> torch
     return ref_2point_root.view(env.num_envs, -1)
 
 
-def vr_wrists_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_wrists_local_orn_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get wrist orientations in reference anchor local frame (wrists only, no head).
 
     Returns:
@@ -1468,7 +1469,7 @@ def vr_wrists_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch
     return ref_2point_root.view(env.num_envs, -1)
 
 
-def vr_head_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def vr_head_local_orn_target(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get head orientation in reference anchor local frame.
 
     Returns:
@@ -1481,7 +1482,7 @@ def vr_head_local_orn_target(env: ManagerBasedEnv, command_name: str) -> torch.T
     return ref_head_quat_root.view(env.num_envs, -1)
 
 
-def get_command_obs(env: ManagerBasedEnv, command_name: str, obs_name: str) -> torch.Tensor:
+def get_command_obs(env: ManagerBasedRLEnv, command_name: str, obs_name: str) -> torch.Tensor:
     """Get an arbitrary attribute from the tracking command by name.
 
     Generic accessor for command observations not covered by dedicated functions.
@@ -1498,7 +1499,7 @@ def get_command_obs(env: ManagerBasedEnv, command_name: str, obs_name: str) -> t
 
 
 def smpl_pose_multi_future_select_joints(
-    env: ManagerBasedEnv, command_name: str, joints_idx: list
+    env: ManagerBasedRLEnv, command_name: str, joints_idx: list
 ) -> torch.Tensor:
     """Extract SMPL joint axis-angle poses for selected joints across future frames.
 
@@ -1518,7 +1519,7 @@ def smpl_pose_multi_future_select_joints(
 
 
 def joint_pos_multi_future_select_joints(
-    env: ManagerBasedEnv, command_name: str, joints_idx: list, non_flatten=True
+    env: ManagerBasedRLEnv, command_name: str, joints_idx: list, non_flatten=True
 ) -> torch.Tensor:
     """Extract reference joint positions for selected joints across future frames.
 
@@ -1541,7 +1542,7 @@ def joint_pos_multi_future_select_joints(
 
 
 def joint_pos_multi_future_select_joints_for_smpl(
-    env: ManagerBasedEnv, command_name: str, joints_idx: list
+    env: ManagerBasedRLEnv, command_name: str, joints_idx: list
 ) -> torch.Tensor:
     """Extract reference joint positions for selected joints across SMPL-aligned future frames.
 
@@ -1565,7 +1566,7 @@ def joint_pos_multi_future_select_joints_for_smpl(
 
 
 def joint_pos_multi_future_select_joints_for_smpl(  # noqa: F811
-    env: ManagerBasedEnv, command_name: str, joints_idx: list
+    env: ManagerBasedRLEnv, command_name: str, joints_idx: list
 ) -> torch.Tensor:
     """Extract reference joint positions for selected joints across SMPL-aligned future frames.
 
@@ -1588,7 +1589,7 @@ def joint_pos_multi_future_select_joints_for_smpl(  # noqa: F811
     return joint_pos_selected
 
 
-def smpl_elbow_wrist_pose_multi_future(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def smpl_elbow_wrist_pose_multi_future(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Extract SMPL elbow and wrist joint poses for multiple future frames.
 
     Selects indices 54:66 from the SMPL pose vector, corresponding to
@@ -1603,7 +1604,7 @@ def smpl_elbow_wrist_pose_multi_future(env: ManagerBasedEnv, command_name: str) 
     return elbow_wrist_pose
 
 
-def smpl_root_ori_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def smpl_root_ori_b(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get SMPL root orientation relative to robot anchor as 6D rotation.
 
     Returns:
@@ -1622,7 +1623,7 @@ def smpl_root_ori_b(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
     return mat[..., :2].reshape(mat.shape[0], -1)
 
 
-def smpl_root_ori_b_mf(env: ManagerBasedEnv, command_name: str, non_flatten=True) -> torch.Tensor:
+def smpl_root_ori_b_mf(env: ManagerBasedRLEnv, command_name: str, non_flatten=True) -> torch.Tensor:
     """Get SMPL root orientation difference in body-local frame for multiple future frames.
 
     Args:
@@ -1644,7 +1645,7 @@ def smpl_root_ori_b_mf(env: ManagerBasedEnv, command_name: str, non_flatten=True
 
 
 def smpl_root_ori_refheading_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=True
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=True
 ) -> torch.Tensor:
     """SMPL root orientation canonicalized by the first SMPL future frame's heading.
 
@@ -1666,7 +1667,7 @@ def smpl_root_ori_refheading_mf(
 
 
 def smpl_root_ori_heading_mf(
-    env: ManagerBasedEnv, command_name: str, non_flatten=True
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=True
 ) -> torch.Tensor:
     """SMPL root orientation canonicalized by robot heading (yaw) only.
 
@@ -1688,7 +1689,7 @@ def smpl_root_ori_heading_mf(
 
 
 def smpl_joints_multi_future(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get SMPL joint positions relative to SMPL root for multiple future frames.
 
@@ -1714,7 +1715,7 @@ def smpl_joints_multi_future(
 
 
 def smpl_joints_multi_future_local(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False, joints_idx=None
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False, joints_idx=None
 ) -> torch.Tensor:
     """Get SMPL joint positions relative to each frame's own root orientation.
 
@@ -1746,7 +1747,7 @@ def smpl_joints_multi_future_local(
 
 
 def smpl_joints_lower_multi_future_local(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get lower-body SMPL joint positions relative to each frame's own root orientation.
 
@@ -1776,7 +1777,7 @@ def smpl_joints_lower_multi_future_local(
 
 
 def smpl_transl_z_multi_future(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """Get SMPL root translation z-height for multiple future frames.
 
@@ -1796,7 +1797,7 @@ def smpl_transl_z_multi_future(
 
 
 def soma_joints_multi_future_local(
-    env: ManagerBasedEnv, command_name: str, non_flatten=False
+    env: ManagerBasedRLEnv, command_name: str, non_flatten=False
 ) -> torch.Tensor:
     """SOMA skeleton joint positions canonicalized to each frame's root orientation.
 
@@ -1816,7 +1817,7 @@ def soma_joints_multi_future_local(
         return ref_joints_root.view(env.num_envs, -1)
 
 
-def soma_root_ori_b_mf(env: ManagerBasedEnv, command_name: str, non_flatten=True):
+def soma_root_ori_b_mf(env: ManagerBasedRLEnv, command_name: str, non_flatten=True):
     """SOMA root orientation relative to robot anchor, as 6D rotation matrix.
 
     Returns:
@@ -1833,7 +1834,7 @@ def soma_root_ori_b_mf(env: ManagerBasedEnv, command_name: str, non_flatten=True
     return rot
 
 
-def compliance(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def compliance(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Get end-effector compliance (stiffness) scaled for observation input.
 
     Returns:
@@ -1844,7 +1845,7 @@ def compliance(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
 
 
 def ext_forces(
-    env: ManagerBasedEnv, force_command_name: str, motion_command_name: str
+    env: ManagerBasedRLEnv, force_command_name: str, motion_command_name: str
 ) -> torch.Tensor:
     """Get last-applied external forces in heading-local frame.
 
@@ -1869,28 +1870,28 @@ def ext_forces(
 # Uses get_body_joint_indices from joint_utils.py
 
 
-def joint_pos_wo_hand(env: ManagerBasedEnv, asset_cfg) -> torch.Tensor:
+def joint_pos_wo_hand(env: ManagerBasedRLEnv, asset_cfg) -> torch.Tensor:
     """Get joint positions excluding hand joints (29 DOF body only)."""
     asset = env.scene[asset_cfg.name]
     body_indices = joint_utils.get_body_joint_indices(asset)
     return asset.data.joint_pos[:, body_indices] - asset.data.default_joint_pos[:, body_indices]
 
 
-def joint_vel_wo_hand(env: ManagerBasedEnv, asset_cfg) -> torch.Tensor:
+def joint_vel_wo_hand(env: ManagerBasedRLEnv, asset_cfg) -> torch.Tensor:
     """Get joint velocities excluding hand joints (29 DOF body only)."""
     asset = env.scene[asset_cfg.name]
     body_indices = joint_utils.get_body_joint_indices(asset)
     return asset.data.joint_vel[:, body_indices] - asset.data.default_joint_vel[:, body_indices]
 
 
-def last_action_wo_hand(env: ManagerBasedEnv, asset_cfg) -> torch.Tensor:
+def last_action_wo_hand(env: ManagerBasedRLEnv, asset_cfg) -> torch.Tensor:
     """Get last actions excluding hand joints."""
     asset = env.scene[asset_cfg.name]
     body_indices = joint_utils.get_body_joint_indices(asset)
     return env.action_manager.action[:, body_indices]
 
 
-def last_meta_action(env: ManagerBasedEnv) -> torch.Tensor:
+def last_meta_action(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Get last meta action (policy output: latent residual + finger primitives).
 
     This returns the policy's output from the previous step, not the joint-level
@@ -2154,7 +2155,7 @@ def diff_body_ang_vel_future_local(env, command_name: str, flatten: bool = False
     return diff.reshape(command.num_envs, command.num_future_frames, -1)
 
 
-def height_map(env: ManagerBasedEnv, command_name, random=False) -> torch.Tensor:
+def height_map(env: ManagerBasedRLEnv, command_name, random=False) -> torch.Tensor:
     """Get height map observation from the environment."""
     command: commands.TrackingCommand = env.command_manager.get_term(command_name)
 
@@ -2189,13 +2190,13 @@ def height_map(env: ManagerBasedEnv, command_name, random=False) -> torch.Tensor
     return obs
 
 
-def height_map_flat(env: ManagerBasedEnv, command_name="motion", random=False) -> torch.Tensor:
+def height_map_flat(env: ManagerBasedRLEnv, command_name="motion", random=False) -> torch.Tensor:
     """Flattened height map for concatenation with 1D policy observations."""
     hmap = height_map(env, command_name=command_name, random=random)
     return hmap.reshape(hmap.shape[0], -1)  # (B, n*n*3)
 
 
-def residual_joint_pos_action(env: ManagerBasedEnv, command_name: str) -> torch.Tensor:
+def residual_joint_pos_action(env: ManagerBasedRLEnv, command_name: str) -> torch.Tensor:
     """Compute the action-space representation of reference joint positions.
 
     Converts the reference motion's joint positions into the normalized action space
@@ -2221,7 +2222,7 @@ def residual_joint_pos_action(env: ManagerBasedEnv, command_name: str) -> torch.
 # Task stage observation (for staged training)
 
 
-def get_task_stage(env: ManagerBasedEnv) -> torch.Tensor:
+def get_task_stage(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Get current task stage."""
     if hasattr(env, "task_stage"):
         return env.task_stage.float().unsqueeze(-1)
@@ -2229,7 +2230,7 @@ def get_task_stage(env: ManagerBasedEnv) -> torch.Tensor:
 
 
 def get_tiled_camera_image(
-    env: ManagerBasedEnv,
+    env: ManagerBasedRLEnv,
     camera_cfg: SceneEntityCfg,
     normalize: bool = True,
     normalize_mean: list[float] = [0.485, 0.456, 0.406],  # ImageNet mean (RGB)
