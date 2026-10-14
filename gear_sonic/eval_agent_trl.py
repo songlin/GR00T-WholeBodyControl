@@ -529,6 +529,7 @@ def main(override_config: omegaconf.OmegaConf):
                 path=exported_policy_path,
                 exported_model_name=exported_onnx_name.replace(".onnx", "_encoder.onnx"),
                 batch_size=1,
+                dynamic_batch=config.get("export_dynamic_batch", False),
             )
             inference_helpers.export_universal_token_decoder_as_onnx(
                 model.policy.actor_module,
@@ -536,6 +537,7 @@ def main(override_config: omegaconf.OmegaConf):
                 path=exported_policy_path,
                 exported_model_name=exported_onnx_name.replace(".onnx", "_decoder.onnx"),
                 batch_size=1,
+                dynamic_batch=config.get("export_dynamic_batch", False),
             )
             print(  # noqa: T201
                 f'Exported encoders ONNX to {os.path.join(exported_policy_path, exported_onnx_name.replace(".onnx", "_encoder.onnx"))}'  # noqa: E501

@@ -198,7 +198,7 @@ def export_universal_token_module_as_onnx(
 
 
 def export_universal_token_encoders_as_onnx(
-    universal_token_module, path, exported_model_name, batch_size=1
+    universal_token_module, path, exported_model_name, batch_size=1, dynamic_batch=False
 ):
     """Export only the ENCODERS of a UniversalTokenModule as ONNX.
 
@@ -213,6 +213,7 @@ def export_universal_token_encoders_as_onnx(
         path: Directory path to save the ONNX model.
         exported_model_name: Name of the exported ONNX file.
         batch_size: Batch size for example input.
+        dynamic_batch: Export the batch axis as dynamic instead of fixed to ``batch_size``.
     """
     os.makedirs(path, exist_ok=True)
     full_path = os.path.join(path, exported_model_name)
@@ -318,6 +319,9 @@ def export_universal_token_encoders_as_onnx(
             verbose=True,
             input_names=["obs_dict"],
             output_names=["encoded_tokens"],
+            dynamic_axes=(
+                {"obs_dict": {0: "batch"}, "encoded_tokens": {0: "batch"}} if dynamic_batch else None
+            ),
             opset_version=13,
         )
 
@@ -338,7 +342,7 @@ def export_universal_token_encoders_as_onnx(
 
 
 def export_universal_token_decoder_as_onnx(
-    universal_token_module, decoder_name, path, exported_model_name, batch_size=1
+    universal_token_module, decoder_name, path, exported_model_name, batch_size=1, dynamic_batch=False
 ):
     """Export only the DECODER of a UniversalTokenModule as ONNX.
 
@@ -352,6 +356,7 @@ def export_universal_token_decoder_as_onnx(
         path: Directory path to save the ONNX model.
         exported_model_name: Name of the exported ONNX file.
         batch_size: Batch size for example input.
+        dynamic_batch: Export the batch axis as dynamic instead of fixed to ``batch_size``.
     """
     os.makedirs(path, exist_ok=True)
     full_path = os.path.join(path, exported_model_name)
@@ -451,6 +456,7 @@ def export_universal_token_decoder_as_onnx(
             verbose=True,
             input_names=["obs_dict"],
             output_names=["action"],
+            dynamic_axes=({"obs_dict": {0: "batch"}, "action": {0: "batch"}} if dynamic_batch else None),
             opset_version=13,
         )
 
