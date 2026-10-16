@@ -22,11 +22,11 @@
 # .logs/ must exist BEFORE sbatch: Slurm opens --output/--error before this script runs,
 # so a missing dir fails the job in 0s with no log at all (job 5544). `mkdir -p .logs` once.
 #
-# Overridable: SONIC_SQSH (default /mnt/beegfs/scratch/$USER/containers/sonic.sqsh)
+# Overridable: SONIC_SQSH (default /mnt/beegfs/containers/sonic.sqsh)
 
 PROJECT_ROOT=$(pwd)
 TRAIN_CMD="$*"
-SQSH=${SONIC_SQSH:-/mnt/beegfs/scratch/${USER:-songlinwei}/containers/sonic.sqsh}
+SQSH=${SONIC_SQSH:-/mnt/beegfs/containers/sonic.sqsh}
 
 mkdir -p "$PROJECT_ROOT/.logs"
 [ -f "$PROJECT_ROOT/gear_sonic/train_agent_trl.py" ] || { echo "FATAL: submit from the GR00T-WholeBodyControl root (cwd=$PROJECT_ROOT)"; exit 1; }
