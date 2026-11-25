@@ -40,6 +40,13 @@ struct Options
     int              deviceID = 0;
 };
 
+// Portable engines, for simulation runs that must reproduce on any GPU: when set, ConvertONNXToTRT uses
+// <dir>/<onnx stem>.portable.trt, an engine built with hardware compatibility AMPERE_PLUS and TF32 off.
+// One such engine file gives bit-identical outputs on every Ampere-or-newer GPU, but every build of it
+// differs (tactics are autotuned), so the file must be shared, not rebuilt: a missing or stale one is an
+// error unless `build` is set.
+void SetPortableTRTEngines(const std::string& dir, bool build);
+
 bool ConvertONNXToTRT(
     const Options& options,
     const std::string& onnxModelPath,

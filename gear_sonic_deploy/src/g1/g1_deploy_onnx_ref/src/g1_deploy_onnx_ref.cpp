@@ -4336,6 +4336,9 @@ int main(int argc, char const* argv[]) {
     std::cout << "  --policy-input-logfile <path>: write policy input tensors to a csv file if provided" << std::endl;
     std::cout << "  --disable-crc-check: disable CRC validation for MuJoCo simulation" << std::endl;
     std::cout << "  --sim-lockstep: gate Control on numbered simulation boundaries (default: OFF)" << std::endl;
+    std::cout << "  --portable-trt <dir>: load the policy/encoder TRT engines from <dir>/<onnx stem>.portable.trt, shared"
+                 " engines that give bit-identical outputs on any Ampere-or-newer GPU; never rebuilt (simulation)" << std::endl;
+    std::cout << "  --build-portable-trt <dir>: build those portable engines into <dir> (then share the files)" << std::endl;
     std::cout << "  --obs-config <path>: specify observation configuration YAML file" << std::endl;
     std::cout << "  --encoder-file <path>: specify encoder ONNX file (optional)" << std::endl;
     std::cout << "  --planner-precision <16|32>: specify precision to run the planner model at (default: 16)" << std::endl;
@@ -4409,6 +4412,15 @@ int main(int argc, char const* argv[]) {
     } else if (std::string(argv[i]) == "--sim-lockstep") {
       simLockstep = true;
       std::cout << "[INFO] Simulation lockstep enabled" << std::endl;
+    } else if (std::string(argv[i]) == "--portable-trt" || std::string(argv[i]) == "--build-portable-trt") {
+      if (i + 1 >= argc) {
+        std::cerr << "Error: " << argv[i] << " requires a directory" << std::endl;
+        return 1;
+      }
+      const bool build = std::string(argv[i]) == "--build-portable-trt";
+      SetPortableTRTEngines(argv[i + 1], build);
+      std::cout << "[INFO] Portable TRT engines " << (build ? "built into " : "loaded from ") << argv[i + 1] << std::endl;
+      i++;
     } else if (std::string(argv[i]) == "--obs-config") {
       if (i + 1 < argc) {
         obsConfigPath = argv[i + 1];

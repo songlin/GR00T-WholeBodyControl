@@ -59,6 +59,10 @@ namespace
 
     Logger s_logger(false);
 
+    // SetPortableTRTEngines: empty dir = the default per-GPU engines next to the ONNX.
+    std::string s_portableDir;
+    bool s_portableBuild = false;
+
     bool FileExists( const std::string& filepath )
     {
         return std::ifstream( filepath.c_str() ).good();
@@ -111,6 +115,14 @@ namespace
     }
 }
 
+void SetPortableTRTEngines(const std::string& dir, bool build)
+{
+    s_portableDir = dir;
+    while ( s_portableDir.size() > 1 && s_portableDir.back() == '/' )
+        s_portableDir.pop_back();
+    s_portableBuild = build;
+}
+
 bool ConvertONNXToTRT(
     const Options& options,
     const std::string& onnxModelPath,
@@ -132,17 +144,44 @@ bool ConvertONNXToTRT(
         std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()
     );
 
-    // hash in the cuda device name and precision::
-    trtHash = picosha2::hash256_hex_string(trtHash + GetCudaDeviceName( options.deviceID ));
-    trtHash = picosha2::hash256_hex_string(trtHash + std::to_string(int(options.precision)));
-
-    // name of the tensorrt we're going to write to (same directory as the ONNX model):
+    const bool portable = !s_portableDir.empty();
     const auto filenamePos = onnxModelPath.find_last_of( '/' ) + 1;
-    const auto onnxDir = onnxModelPath.substr(0, filenamePos);
-    trtFile = onnxDir + prefix + onnxModelPath.substr( filenamePos, onnxModelPath.find_last_of( '.' ) - filenamePos );
-    trtFile += ".trt";
+    const auto onnxStem = onnxModelPath.substr( filenamePos, onnxModelPath.find_last_of( '.' ) - filenamePos );
+    if ( portable )
+    {
+        // A portable engine is tied to the ONNX, the precision and the TensorRT version, not to the GPU.
+        trtHash = picosha2::hash256_hex_string(trtHash + "portable:ampere_plus:no_tf32:trt" + std::to_string(getInferLibVersion()));
+        trtHash = picosha2::hash256_hex_string(trtHash + std::to_string(int(options.precision)));
+        trtFile = s_portableDir + "/" + onnxStem + ".portable.trt";
+        forceConvert = false;
+    }
+    else
+    {
+        // hash in the cuda device name and precision::
+        trtHash = picosha2::hash256_hex_string(trtHash + GetCudaDeviceName( options.deviceID ));
+        trtHash = picosha2::hash256_hex_string(trtHash + std::to_string(int(options.precision)));
 
-    if (!forceConvert && FileExists( trtFile ) )
+        // name of the tensorrt we're going to write to (same directory as the ONNX model):
+        trtFile = onnxModelPath.substr(0, filenamePos) + prefix + onnxStem + ".trt";
+    }
+
+    if ( portable && !s_portableBuild )
+    {
+        std::string hashInFile(trtHash.size(), '\0');
+        std::ifstream(trtFile, std::ios::binary).read(hashInFile.data(), trtHash.size());
+        if ( hashInFile == trtHash )
+        {
+            LOG_INFO( "Using portable TRT engine " + trtFile );
+            return true;
+        }
+        LOG_ERROR( "Portable TRT engine " + trtFile + ( FileExists( trtFile ) ?
+            " was built for another ONNX model, precision or TensorRT version." : " not found." ) +
+            " Portable engines are shared, not rebuilt (each build differs numerically): fetch the shared one"
+            " (./simple.sh fetches it from the HF repo), or build a new one with --build-portable-trt and share it." );
+        return false;
+    }
+
+    if (!forceConvert && !portable && FileExists( trtFile ) )
     {
         std::ifstream file(trtFile, std::ios::binary);
         
@@ -160,7 +199,7 @@ bool ConvertONNXToTRT(
         }
         LOG_INFO( "TRT file " + trtFile + " is out of date and needs to be regenerated. This could take a while..." );
     }
-    else
+    else if ( !portable )
     {
         LOG_INFO( "TRT file " + trtFile + " not found. This could take a while to generate..." );
     }
@@ -286,6 +325,14 @@ bool ConvertONNXToTRT(
             return false;
         }
         config->setFlag( nvinfer1::BuilderFlag::kFP16 );
+    }
+
+    if ( portable )
+    {
+        // Ampere-or-newer GPUs run the same kernels from one engine; TF32 off keeps the math in FP32.
+        config->setHardwareCompatibilityLevel( nvinfer1::HardwareCompatibilityLevel::kAMPERE_PLUS );
+        config->clearFlag( nvinfer1::BuilderFlag::kTF32 );
+        LOG_INFO( "Building portable TRT engine " + trtFile + " (AMPERE_PLUS, TF32 off)" );
     }
 
     // CUDA stream used for profiling by the builder.
