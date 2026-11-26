@@ -179,6 +179,13 @@ size_t StateLogger::size() const {
   return size_;
 }
 
+void StateLogger::padTo_(std::vector<Entry>& out, size_t n) const {
+  // The first ticks after the policy engages or a lockstep reset have fewer entries than the observation history
+  // needs. Repeat the oldest, as if the robot had been at rest there (rsi.sonic.controller does the same): all-zero
+  // entries (an upside-down gravity, no motion) made the policy kick, the feet of a held standing pose sliding 13 mm.
+  if (out.size() < n) out.resize(n, out.empty() ? makeZeroEntry_() : out.back());
+}
+
 void StateLogger::ResetHistoryKeepIndex() {
   std::lock_guard<std::mutex> lock(ring_mutex_);
   start_ = 0;
@@ -194,11 +201,7 @@ std::vector<Entry> StateLogger::GetLatest(size_t n, bool newest_first) const {
     size_t idx = (start_ + size_ - 1 - i + capacity_) % capacity_;
     out.push_back(ring_[idx]);
   }
-  // Pad with zeros if requested more than available
-  if (out.size() < n) {
-    const size_t missing = n - out.size();
-    for (size_t i = 0; i < missing; ++i) { out.push_back(makeZeroEntry_()); }
-  }
+  padTo_(out, n);
   // Reverse if oldest_first requested
   if (!newest_first) { std::reverse(out.begin(), out.end()); }
   return out;
@@ -210,7 +213,7 @@ std::vector<Entry> StateLogger::GetLatest(size_t n, double sample_dt_seconds, bo
   std::vector<Entry> out;
   if (n == 0) return out;
   if (size_ == 0) {
-    // Pad with zeros if requested more than available (consistent with first overload)
+    // Nothing logged yet: all-zero entries (nothing to copy)
     out.reserve(n);
     for (size_t k = 0; k < n; ++k) { out.push_back(makeZeroEntry_()); }
     return out;
@@ -231,11 +234,7 @@ std::vector<Entry> StateLogger::GetLatest(size_t n, double sample_dt_seconds, bo
         const size_t idx = (start_ + size_ - 1 - offset + capacity_) % capacity_;
         out.push_back(ring_[idx]);
       }
-      // Pad with zeros if requested more than available
-      if (out.size() < n) {
-        const size_t missing = n - out.size();
-        for (size_t k = 0; k < missing; ++k) { out.push_back(makeZeroEntry_()); }
-      }
+      padTo_(out, n);
       // Reverse if oldest_first requested
       if (!newest_first) { std::reverse(out.begin(), out.end()); }
       return out;
@@ -267,11 +266,7 @@ std::vector<Entry> StateLogger::GetLatest(size_t n, double sample_dt_seconds, bo
     i = (i + capacity_ - 1) % capacity_;
     scanned += 1;
   }
-  // Pad with zeros if requested more than available
-  if (out.size() < n) {
-    const size_t missing = n - out.size();
-    for (size_t k = 0; k < missing; ++k) { out.push_back(makeZeroEntry_()); }
-  }
+  padTo_(out, n);
   // Reverse if oldest_first requested
   if (!newest_first) { std::reverse(out.begin(), out.end()); }
   return out;

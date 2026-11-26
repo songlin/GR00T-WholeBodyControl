@@ -213,6 +213,9 @@ class StateLogger {
   // Ring buffer operations
   void pushToRing_(const Entry& e);
 
+  // Fill ``out`` (newest first, as selected so far) up to n entries with copies of its oldest entry
+  void padTo_(std::vector<Entry>& out, size_t n) const;
+
  private:
   // Configuration
   std::string csv_path_;
